@@ -6,22 +6,23 @@ import json
 import os
 
 class Connections(object):
+    def __init__(self):
+        self.files = []
+        for f in os.listdir("connections"):
+            path = os.path.join("connections", f)
+            if os.path.isfile(path):
+                self.files.append(path)
+        self.files.sort()
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def index(self, departureTime):
         target_date = dateutil.parser.parse(departureTime)
         target_file = None
 
-        files = []
-        for f in os.listdir("data"):
-            path = os.path.join("data", f)
-            if os.path.isfile(path):
-                files.append(path)
-        files.sort()
-
-        for i in range(0, len(files)-1):
-            current_file = files[i]
-            next_file = files[i+1]
+        for i in range(0, len(self.files)-1):
+            current_file = self.files[i]
+            next_file = self.files[i+1]
             current_date = dateutil.parser.parse(os.path.basename(os.path.splitext(current_file)[0]))
             next_date = dateutil.parser.parse(os.path.basename(os.path.splitext(next_file)[0]))
 
