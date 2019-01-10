@@ -13,8 +13,13 @@ from agency import Agency
 from connections import Connections
 from events import Events
 
-URL = "https://graph.irail.be/sncb/connections?departureTime=2019-01-10T00:00:00.000Z"
-STOP_TIME = "2019-01-11T00:00:00.000Z"
+URL = "https://graph.irail.be/sncb/connections?departureTime={0}".format(datetime.datetime.utcnow()
+                                                                 .replace(hour=0, minute=0, second=0, microsecond=0)
+                                                                 .isoformat() + ".000Z")
+STOP_TIME = (datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            + datetime.timedelta(days=1)).isoformat() + ".000Z"
+EVENTS_FILE = "events/sncb.jsonld"
+
 
 class LCServer(object):
     def __init__(self):
@@ -76,22 +81,23 @@ class LCServer(object):
             for i in range(0, random.randint(0, 10)):
                 connection = random.choice(data["@graph"])
 
-                # Generate random timestamp in the futher and adjust the delays
+                # Generate random timestamp in the further and adjust the delays
                 timestamp = dateutil.parser.parse(connection["departureTime"]) \
-                            + datetime.timedelta(minutes=random.randint(0, 60*12))
-                connection["departureDelay"] = random.randrange(0, 600, 60)
-                connection["arrivalDelay"] = random.randrange(0, 600, 60)
+                            + datetime.timedelta(minutes=random.randint(0, 5*60))
+                timestamp = timestamp.isoformat().split("+")[0] + ".000Z"
+                connection["departureDelay"] = connection.get("departureDelay", 0) + random.randrange(0, 600, 60)
+                connection["arrivalDelay"] = connection.get("arrivalDelay", 0) + random.randrange(0, 600, 60)
 
                 # Create an event object
                 e = {
-                    "timestamp": timestamp.isoformat(),
+                    "timestamp": timestamp,
                     "connection": connection
                 }
                 print("Connection #{0}: {1}".format(i, e))
                 events.append(e)
 
         # Save all events for this file
-        with open("events/events.jsonld", "w") as json_file:
+        with open(EVENTS_FILE, "w") as json_file:
             json.dump(events, json_file)
 
     @cherrypy.expose
