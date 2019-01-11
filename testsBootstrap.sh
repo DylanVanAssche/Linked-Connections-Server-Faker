@@ -6,7 +6,7 @@ python main.py &
 cd ..
 
 # Wait until all connections and events are generated
-sleep 180s
+sleep 300s
 
 # Run tests
 python tests/tests.py
