@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # Start server
-python setup.py install
 cd lc-server-faker
 python main.py &
 
