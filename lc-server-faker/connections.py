@@ -17,7 +17,12 @@ class Connections(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def index(self, departureTime):
-        target_date = dateutil.parser.parse(departureTime)
+        try:
+            target_date = dateutil.parser.parse(departureTime)
+            if target_date > now_date:
+                raise ValueError("lastSyncTime must be before now")
+        except ValueError:
+            raise cherrypy.HTTPError(400, "lastSyncTime isn't a valid ISO date!")
         target_file = None
 
         for i in range(0, len(self.files)-1):

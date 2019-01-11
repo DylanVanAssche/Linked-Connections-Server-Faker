@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import cherrypy
-import os
+import datetime
 import dateutil
 import json
 
@@ -15,11 +15,18 @@ class Events(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def index(self, lastSyncTime):
+        now_date = datetime.datetime.now()
+        try:
+            target_date = dateutil.parser.parse(lastSyncTime)
+            if target_date > now_date:
+                raise ValueError("lastSyncTime must be before now")
+        except ValueError:
+            raise cherrypy.HTTPError(400, "lastSyncTime isn't a valid ISO date!")
+
         events = {
-            "lastSyncTime": lastSyncTime,
+            "lastSyncTime": target_date.isoformat().split("+")[0] + ".000Z",
             "@graph": []
         }
-        target_date = dateutil.parser.parse(lastSyncTime)
 
         # Read pseudorandom events JSON-LD file
         with open(self.file, "r") as json_file:
@@ -29,6 +36,6 @@ class Events(object):
         json_data = sorted(json_data, key=lambda k: k["timestamp"])
         for c in json_data:
             current_date = dateutil.parser.parse(c["timestamp"])
-            if current_date >= target_date:
+            if target_date <= current_date <= now_date:
                 events["@graph"].append(c)
         return events
