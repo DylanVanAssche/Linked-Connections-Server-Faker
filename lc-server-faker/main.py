@@ -160,7 +160,7 @@ if __name__ == "__main__":
     max_delay = args.maxdelay
     step_delay = args.stepdelay
     additional_event_time = args.additionaleventtime
-    if argparse.clean is not None:
+    if hasattr(argparse, "clean"):
         os.rmdir("connections")
         os.rmdir("events")
 
