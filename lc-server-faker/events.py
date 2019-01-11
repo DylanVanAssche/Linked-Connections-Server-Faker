@@ -4,13 +4,12 @@ import cherrypy
 import datetime
 import dateutil
 import json
-
-FILE = "events/sncb.jsonld"
+from constants import EVENTS_FILE
 
 
 class Events(object):
     def __init__(self):
-        self.file = FILE
+        self.file = EVENTS_FILE
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

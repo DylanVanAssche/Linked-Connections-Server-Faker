@@ -6,6 +6,7 @@ import dateutil.parser
 import json
 import os
 
+
 class Connections(object):
     def __init__(self):
         self.files = []

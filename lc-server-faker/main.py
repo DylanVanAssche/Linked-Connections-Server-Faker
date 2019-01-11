@@ -8,21 +8,10 @@ import datetime
 import json
 import random
 from urllib.parse import urlparse, parse_qs
-
 from agency import Agency
 from connections import Connections
 from events import Events
-
-URL = "https://graph.irail.be/sncb/connections?departureTime={0}".format(datetime.datetime.utcnow()
-                                                                 .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
-                                                                 .isoformat() + "Z")
-STOP_TIME = (datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
-            + datetime.timedelta(days=1)).isoformat() + "Z"
-EVENTS_FILE = "events/sncb.jsonld"
-NUMBER_OF_EVENTS = 10
-MAX_DELAY = 600
-STEP_DELAY = 60
-ADDITIONAL_EVENT_TIME = 120
+from constants import EVENTS_FILE, FRAGMENT_URL, STOP_TIME, NUMBER_OF_EVENTS, MAX_DELAY, STEP_DELAY, ADDITIONAL_EVENT_TIME
 
 
 class LCServer(object):
@@ -45,7 +34,7 @@ class LCServer(object):
 
     def fetch_connections(self):
         try:
-            url = URL
+            url = FRAGMENT_URL
             os.mkdir("connections")
 
             while True:
