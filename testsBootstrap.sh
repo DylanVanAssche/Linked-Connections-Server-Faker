@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # Start server
-python setup.py &
+python setup.py install
+cd lc-server-faker
+python main.py &
 
 # Wait until all connections and events are generated
 sleep 90s

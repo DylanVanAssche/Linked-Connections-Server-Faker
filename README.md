@@ -8,6 +8,7 @@ You can also use this server perfectly in a CI environment by providing the nece
 # How to use
 
 1. Clone this repository
-2. Run `setup.py`
-3. Enjoy! The server is available at: `127.0.0.1:8080`
+2. Run `pip3 install -r requirements.txt`
+3. Launch the server: `cd lc-server-faker && python3 main.py`
+4. Enjoy! The server is available at: `127.0.0.1:8080`
 
