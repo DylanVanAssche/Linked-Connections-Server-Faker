@@ -14,10 +14,10 @@ from connections import Connections
 from events import Events
 
 URL = "https://graph.irail.be/sncb/connections?departureTime={0}".format(datetime.datetime.utcnow()
-                                                                 .replace(hour=0, minute=0, second=0, microsecond=0)
-                                                                 .isoformat().split("+")[0] + ".000Z")
-STOP_TIME = (datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-            + datetime.timedelta(days=1)).isoformat().split("+")[0] + ".000Z"
+                                                                 .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+                                                                 .isoformat() + ".000Z")
+STOP_TIME = (datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+            + datetime.timedelta(days=1)).isoformat() + ".000Z"
 EVENTS_FILE = "events/sncb.jsonld"
 NUMBER_OF_EVENTS = 10
 MAX_DELAY = 600
@@ -63,8 +63,8 @@ class LCServer(object):
                 date = dateutil.parser.parse(departure_time_query)
                 if date >= dateutil.parser.parse(STOP_TIME):
                     break
-        except:
-            print("Generating connections FAILED")
+        except Exception as e:
+            print("Generating connections FAILED: " + str(e))
             os.rmdir("connections")
 
     def generate_pseudorandom_events(self):
@@ -93,10 +93,10 @@ class LCServer(object):
                                 + datetime.timedelta(minutes=random.randint(0, ADDITIONAL_EVENT_TIME))
 
                     # Ignore events that are outside our 24h window
-                    if timestamp >= STOP_TIME:
+                    if timestamp >= dateutil.parser.parse(STOP_TIME):
                         continue
 
-                    timestamp = timestamp.isoformat().split("+")[0] + ".000Z"
+                    timestamp = timestamp.replace(tzinfo=None).isoformat() + ".000Z"
                     connection["departureDelay"] = connection.get("departureDelay", 0) \
                                                    + random.randrange(0, MAX_DELAY, STEP_DELAY)
                     connection["arrivalDelay"] = connection.get("arrivalDelay", 0) \
@@ -113,8 +113,8 @@ class LCServer(object):
             # Save all events for this file
             with open(EVENTS_FILE, "w") as json_file:
                 json.dump(events, json_file)
-        except:
-            print("Generating pseudorandom events FAILED")
+        except Exception as e:
+            print("Generating pseudorandom events FAILED: " + str(e))
             os.rmdir("events")
 
     @cherrypy.expose

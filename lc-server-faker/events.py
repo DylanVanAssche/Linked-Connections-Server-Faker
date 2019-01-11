@@ -15,7 +15,7 @@ class Events(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def index(self, lastSyncTime):
-        now_date = datetime.datetime.now()
+        now_date = datetime.datetime.now().replace(tzinfo=None)
         try:
             target_date = dateutil.parser.parse(lastSyncTime)
             if target_date > now_date:
@@ -24,7 +24,7 @@ class Events(object):
             raise cherrypy.HTTPError(400, "lastSyncTime isn't a valid ISO date!")
 
         events = {
-            "lastSyncTime": target_date.isoformat().split("+")[0] + ".000Z",
+            "lastSyncTime": target_date.replace(tzinfo=None).isoformat() + ".000Z",
             "@graph": []
         }
 
@@ -35,7 +35,7 @@ class Events(object):
         # Sort the events by timestamp and filter them based on the sync time
         json_data = sorted(json_data, key=lambda k: k["timestamp"])
         for c in json_data:
-            current_date = dateutil.parser.parse(c["timestamp"])
+            current_date = dateutil.parser.parse(c["timestamp"]).replace(tzinfo=None)
             if target_date <= current_date <= now_date:
                 events["@graph"].append(c)
         return events
