@@ -12,3 +12,8 @@ You can also use this server perfectly in a CI environment by providing the nece
 3. Launch the server: `cd lc-server-faker && python3 main.py`
 4. Enjoy! The server is available at: `127.0.0.1:8080`
 
+# Build status
+
+## Master
+
+[![Build Status](https://travis-ci.com/DylanVanAssche/Linked-Connections-Server-Faker.svg?branch=master)](https://travis-ci.com/DylanVanAssche/Linked-Connections-Server-Faker)
