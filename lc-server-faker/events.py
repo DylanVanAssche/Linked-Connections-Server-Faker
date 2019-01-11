@@ -17,14 +17,14 @@ class Events(object):
     def index(self, lastSyncTime):
         now_date = datetime.datetime.now().replace(tzinfo=None)
         try:
-            target_date = dateutil.parser.parse(lastSyncTime)
+            target_date = dateutil.parser.parse(lastSyncTime).replace(tzinfo=None)
             if target_date > now_date:
                 raise ValueError("lastSyncTime must be before now")
         except ValueError:
             raise cherrypy.HTTPError(400, "lastSyncTime isn't a valid ISO date!")
 
         events = {
-            "lastSyncTime": target_date.replace(tzinfo=None).isoformat() + ".000Z",
+            "lastSyncTime": target_date.replace(tzinfo=None).isoformat() + "Z",
             "@graph": []
         }
 

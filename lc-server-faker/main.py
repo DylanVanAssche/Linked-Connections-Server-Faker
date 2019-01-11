@@ -15,9 +15,9 @@ from events import Events
 
 URL = "https://graph.irail.be/sncb/connections?departureTime={0}".format(datetime.datetime.utcnow()
                                                                  .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
-                                                                 .isoformat() + ".000Z")
+                                                                 .isoformat() + "Z")
 STOP_TIME = (datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
-            + datetime.timedelta(days=1)).isoformat() + ".000Z"
+            + datetime.timedelta(days=1)).isoformat() + "Z"
 EVENTS_FILE = "events/sncb.jsonld"
 NUMBER_OF_EVENTS = 10
 MAX_DELAY = 600
@@ -96,7 +96,7 @@ class LCServer(object):
                     if timestamp >= dateutil.parser.parse(STOP_TIME):
                         continue
 
-                    timestamp = timestamp.replace(tzinfo=None).isoformat() + ".000Z"
+                    timestamp = timestamp.replace(tzinfo=None).isoformat() + "Z"
                     connection["departureDelay"] = connection.get("departureDelay", 0) \
                                                    + random.randrange(0, MAX_DELAY, STEP_DELAY)
                     connection["arrivalDelay"] = connection.get("arrivalDelay", 0) \
