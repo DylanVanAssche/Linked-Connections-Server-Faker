@@ -8,7 +8,7 @@ cd ..
 # Wait until all connections and events are generated
 while [ 1 ]
 do
-	wget -q --spider http://127.0.0.1:8080
+	wget -q http://127.0.0.1:8080
 	if [ $? -eq 0 ]
 	then
 		echo "Server is available now!"
