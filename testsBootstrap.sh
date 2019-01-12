@@ -8,12 +8,14 @@ cd ..
 # Wait until all connections and events are generated
 while [ 1 ]
 do
-	sleep 10s
-	ping -c 3 127.0.0.1:8080 > /dev/null 2>&1
+	wget -q --spider http://127.0.0.1:8080
 	if [ $? -eq 0 ]
 	then
 		echo "Server is available now!"
 		break
+	else
+		echo "Waiting ..."
+		sleep 5s
 	fi
 done
 sleep 5s
