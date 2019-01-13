@@ -8,10 +8,11 @@ import dateutil
 import datetime
 import json
 import signal
+import abc
 from constants import *
 
 
-class BaseEventsHandler(object):
+class _BaseEventsHandler(object):
     def initialize(self, supported_agencies):
         self.supported_agencies = supported_agencies
         self.file = EVENTS_FILE
@@ -51,8 +52,39 @@ class BaseEventsHandler(object):
 
         return events
 
+class _PushHandler(_BaseEventsHandler):
+    __metaclass__ = abc.ABCMeta
 
-class EventsHandlerHTTP(BaseEventsHandler, tornado.web.RequestHandler):
+    def initialize(self, supported_agencies):
+        _BaseEventsHandler.initialize(self, supported_agencies)
+
+        # Start the event fetcher (1s) and stop it when shutting down
+        self.callback = tornado.ioloop.PeriodicCallback(self._check_for_new_events, 1000)
+        signal.signal(signal.SIGINT, self._shutdown)
+        self.last_event_timestamp = datetime.datetime.utcnow()
+
+    def _check_for_new_events(self):
+        e = self._fetch_events(self.last_event_timestamp)
+        if len(e["@graph"]) > 0:
+            print("Found {0} events".format(len(e["@graph"])))
+            self._send(e)
+            self.last_event_timestamp = datetime.datetime.now()
+        else:
+            print("No events yet")
+
+    def _shutdown(self, sig, frame):
+        self._close()
+
+    @abc.abstractmethod
+    def _send(self, message):
+        raise NotImplementedError("You must implement the _send() method")
+
+    def _close(self):
+        print("Cleaning up")
+        self.callback.stop()
+
+
+class EventsHandlerHTTP(_BaseEventsHandler, tornado.web.RequestHandler):
     def get(self, agency):
         # return HTTP if header is application/json, works fine
         # return SSE if header is text/event-stream, see https://gist.github.com/mivade/d474e0540036d873047f
@@ -82,49 +114,38 @@ class EventsHandlerHTTP(BaseEventsHandler, tornado.web.RequestHandler):
             )
 
 
-class EventsHandlerSSE(BaseEventsHandler, tornadose.handlers.EventSource):
+class EventsHandlerSSE(_PushHandler, tornadose.handlers.EventSource):
     def initialize(self, supported_agencies):
-        BaseEventsHandler.initialize(self, supported_agencies)
+        _PushHandler.initialize(self, supported_agencies)
         tornadose.handlers.EventSource.initialize(self, tornadose.stores.QueueStore())
 
-        # Start the event fetcher (1s) and stop it when shutting down
-        self.callback = tornado.ioloop.PeriodicCallback(self._check_for_new_events, 1000)
-        signal.signal(signal.SIGINT, self._shutdown)
-
-    async def get(self, *args, **kwargs):
-        # TO DO: Fetch here based on lastSyncTime parameter for each individual client
-        print("Registering client, setting lastSyncTime")
-        try:
-            self.last_event_timestamp = dateutil.parser.parse(self.get_argument("lastSyncTime"))
-            self.callback.start()
-            await tornadose.handlers.EventSource.get(self, args, kwargs)
-        except ValueError as e:
-            print("Invalid datetime: {0}".format(e))
-            self.set_status(400)
-
-    def _check_for_new_events(self):
-        e = self._fetch_events(self.last_event_timestamp)
-        if len(e["@graph"]) > 0:
-            print("Found {0} SSE events".format(len(e["@graph"])))
-            self.store.submit(e)
-            self.last_event_timestamp = datetime.datetime.now()
+    async def get(self, agency):
+        if agency in self.supported_agencies:
+            print("Registering client, setting lastSyncTime")
+            try:
+                self.last_event_timestamp = dateutil.parser.parse(self.get_argument("lastSyncTime"))
+                self.callback.start()
+                await tornadose.handlers.EventSource.get(self)
+            except ValueError as e:
+                print("Invalid datetime: {0}".format(e))
+                self.set_status(400)
         else:
-            print("No events yet")
+            self.set_status(404)
+            self.store.submit(
+                {
+                    "error": "Unsupported agency: {0}".format(agency),
+                    "status": 404
+                }
+            )
 
     def _shutdown(self, sig, frame):
-        self.callback.stop()
+        self._close()
+
+    def _send(self, message):
+        self.store.submit(message)
 
 
-class EventsHandlerWS(BaseEventsHandler, tornado.websocket.WebSocketHandler):
-    def initialize(self, supported_agencies):
-        BaseEventsHandler.initialize(self, supported_agencies)
-        self.store = tornadose.stores.QueueStore()
-
-        # Start the event fetcher (1s) and stop it when shutting down
-        self.callback = tornado.ioloop.PeriodicCallback(self._check_for_new_events, 1000)
-        signal.signal(signal.SIGINT, self._shutdown)
-        self.last_event_timestamp = datetime.datetime.utcnow()
-
+class EventsHandlerWS(_PushHandler, tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         # CORS header don't have any effect with WebSockets
         return True
@@ -144,28 +165,12 @@ class EventsHandlerWS(BaseEventsHandler, tornado.websocket.WebSocketHandler):
                 }
             )
 
+    def on_close(self):
+        self._close()
+
     def _send(self, message):
         try:
             self.write_message(message)
         except tornado.websocket.WebSocketClosedError:
             print("WebSocket was already closed, cannot write data to it!")
             self._close()
-
-    def _check_for_new_events(self):
-        e = self._fetch_events(self.last_event_timestamp)
-        if len(e["@graph"]) > 0:
-            print("Found {0} WS events".format(len(e["@graph"])))
-            self._send(e)
-            self.last_event_timestamp = datetime.datetime.now()
-        else:
-            print("No events yet")
-
-    def _shutdown(self, sig, frame):
-        self._close()
-
-    def on_close(self):
-        self._close()
-
-    def _close(self):
-        print("WS closed, cleaning up")
-        self.callback.stop()

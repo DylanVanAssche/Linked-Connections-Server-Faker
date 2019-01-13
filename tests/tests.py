@@ -2,20 +2,37 @@
 
 import requests
 import datetime
-import time
+import websockets
+import asyncio
+from sseclient import SSEClient
 
-HOST = "http://127.0.0.1:8080"
+PROTOCOL_HTTP = "http://"
+PROTOCOL_WS = "ws://"
+HOST = "127.0.0.1:8080"
+now = datetime.datetime.utcnow()
+formatted_date = now.replace(tzinfo=None).isoformat()
 
 # Test the /connections resource
-now = datetime.datetime.now()
-formatted_date = now.replace(tzinfo=None).isoformat()
-r = requests.get(HOST + "/sncb/connections?departureTime=" + formatted_date)
+r = requests.get(PROTOCOL_HTTP + HOST + "/sncb/connections?departureTime=" + formatted_date)
 r.raise_for_status()
 print("/connections resource OK")
 
-# Test the /events resource
-now = datetime.datetime.now()
-formatted_date = now.replace(tzinfo=None).isoformat()
-r = requests.get(HOST + "/sncb/events?lastSyncTime=" + formatted_date)
+# Test the /events/poll resource
+r = requests.get(PROTOCOL_HTTP + HOST + "/sncb/events/poll?lastSyncTime=" + formatted_date)
 r.raise_for_status()
-print("/events resource OK")
+print("/events/poll resource OK")
+
+# Test the /events/sse resource
+r = SSEClient(PROTOCOL_HTTP + HOST + "/sncb/events/sse?lastSyncTime=" + formatted_date)
+for msg in r:
+    print(msg)
+    break
+print("/events/sse resource OK")
+
+# Test the /events/ws resource
+async def send_time(uri):
+    async with websockets.connect(uri) as websocket:
+        await websocket.send(formatted_date)
+
+asyncio.get_event_loop().run_until_complete(send_time(PROTOCOL_WS + HOST + "/sncb/events/ws"))
+print("/evens/ws resource OK")
