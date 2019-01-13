@@ -125,7 +125,11 @@ class EventsHandlerWS(BaseEventsHandler, tornado.websocket.WebSocketHandler):
         signal.signal(signal.SIGINT, self._shutdown)
         self.last_event_timestamp = datetime.datetime.utcnow()
 
-    async def on_message(self, message):
+    def check_origin(self, origin):
+        # CORS header don't have any effect with WebSockets
+        return True
+
+    def on_message(self, message):
         print("Message received: " + str(message))
         print("Registering client, setting lastSyncTime")
         try:
@@ -140,15 +144,12 @@ class EventsHandlerWS(BaseEventsHandler, tornado.websocket.WebSocketHandler):
                 }
             )
 
-    def on_closed(self):
-        self._close()
-
-    def _close(self):
-        self.callback.stop()
-
-    def check_origin(self, origin):
-        # CORS header don't have any effect with WebSockets
-        return True
+    def _send(self, message):
+        try:
+            self.write_message(message)
+        except tornado.websocket.WebSocketClosedError:
+            print("WebSocket was already closed, cannot write data to it!")
+            self._close()
 
     def _check_for_new_events(self):
         e = self._fetch_events(self.last_event_timestamp)
@@ -162,9 +163,9 @@ class EventsHandlerWS(BaseEventsHandler, tornado.websocket.WebSocketHandler):
     def _shutdown(self, sig, frame):
         self._close()
 
-    def _send(self, message):
-        try:
-            self.write_message(message)
-        except tornado.websocket.WebSocketClosedError:
-            print("WebSocket was already closed, cannot write data to it!")
-            self._close()
+    def on_close(self):
+        self._close()
+
+    def _close(self):
+        print("WS closed, cleaning up")
+        self.callback.stop()
