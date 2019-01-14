@@ -18,7 +18,7 @@ do
 		sleep 5s
 	fi
 done
-sleep 5s
+sleep 1s
 
 # Run tests
 python tests/tests.py
