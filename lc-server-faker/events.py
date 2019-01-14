@@ -9,10 +9,13 @@ import datetime
 import json
 import signal
 import abc
+import helpers
 from constants import *
 
 
 class _BaseEventsHandler(object):
+    __metaclass__ = abc.ABCMeta
+
     def initialize(self, supported_agencies):
         self.supported_agencies = supported_agencies
         self.file = EVENTS_FILE
@@ -21,7 +24,7 @@ class _BaseEventsHandler(object):
         self.set_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
 
     def _fetch_events(self, last_sync_time):
-        now_date = datetime.datetime.now().replace(tzinfo=None)
+        now_date = datetime.datetime.utcnow().replace(tzinfo=None)
         target_date = last_sync_time.replace(tzinfo=None)
         if target_date > now_date:
             raise ValueError("lastSyncTime must be before now")
@@ -68,7 +71,7 @@ class _PushHandler(_BaseEventsHandler):
         if len(e["@graph"]) > 0:
             print("Found {0} events".format(len(e["@graph"])))
             self._send(e)
-            self.last_event_timestamp = datetime.datetime.now()
+            self.last_event_timestamp = datetime.datetime.utcnow()
         else:
             print("No events yet")
 
@@ -175,8 +178,30 @@ class EventsHandlerWS(_PushHandler, tornado.websocket.WebSocketHandler):
             print("WebSocket was already closed, cannot write data to it!")
             self._close()
 
+
 class EventsHandlerNew(tornado.web.RequestHandler):
     def post(self):
-        connectionURI = self.get_argument("connectionURI")
         timestamp = self.get("timestamp")
+        connection_uri = self.get_argument("connectionURI")
         action = self.get_argument("action")
+        self._add_event(timestamp, connection_uri, action)
+
+    def _add_event(self, timestamp, connection_uri, action):
+        print("Adding event")
+        try:
+            # Open the events file
+            with open(EVENTS_FILE, "r") as json_file:
+                events = json.load(json_file)
+
+            # Create the event and add it to graph
+            e = {
+                "timestamp": timestamp,
+                "connectionURI": connection_uri
+            }
+            events["@graph"].append(e)
+
+            # Save all events to the events file
+            with open(EVENTS_FILE, "w") as json_file:
+                json.dump(events, json_file)
+        except Exception as e:
+            print("Adding event FAILED: {0}".format(e))

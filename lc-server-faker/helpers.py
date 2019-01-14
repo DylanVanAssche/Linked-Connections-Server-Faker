@@ -32,7 +32,7 @@ def fetch_connections():
                 if date >= dateutil.parser.parse(STOP_TIME):
                     break
     except Exception as e:
-        print("Generating connections FAILED: " + str(e))
+        print("Generating connections FAILED: {0}".format(e))
         os.rmdir("connections")
 
 
@@ -67,15 +67,11 @@ def generate_pseudorandom_events(number_of_events, additional_event_time, max_de
                         continue
 
                     timestamp = timestamp.replace(tzinfo=None).isoformat() + "Z"
-                    connection["departureDelay"] = connection.get("departureDelay", 0) \
-                                                   + random.randrange(0, max_delay, step_delay)
-                    connection["arrivalDelay"] = connection.get("arrivalDelay", 0) \
-                                                 + random.randrange(0, max_delay, step_delay)
 
                     # Create an event object
                     e = {
                         "timestamp": timestamp,
-                        "connection": connection
+                        "connectionURI": connection["@id"]
                     }
                     print("Connection #{0}: {1}".format(i, e))
                     events.append(e)
@@ -84,5 +80,5 @@ def generate_pseudorandom_events(number_of_events, additional_event_time, max_de
             with open(EVENTS_FILE, "w") as json_file:
                 json.dump(events, json_file)
     except Exception as e:
-        print("Generating pseudorandom events FAILED: " + str(e))
+        print("Generating pseudorandom events FAILED: {0}".format(e))
         os.rmdir("events")

@@ -8,12 +8,14 @@ import tornado.ioloop
 import tornado.web
 from connections import ConnectionsHandler
 from constants import *
-from events import EventsHandlerHTTP, EventsHandlerSSE, EventsHandlerWS
+from events import EventsHandlerHTTP, EventsHandlerSSE, EventsHandlerWS, EventsHandlerNew
 
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
+        # Landing page
         self.render("assets/index.html")
+
 
 def main():
     # Commandline configuration
@@ -86,9 +88,9 @@ def main():
         tornado.web.url(r"/([a-z]+)/events/ws",
                         EventsHandlerWS,
                         dict(supported_agencies=SUPPORTED_AGENCIES),
-                        name="events_ws")
+                        name="events_ws"),
         tornado.web.url(r"/([a-z]+)/events/new",
-                        EventsHandlerWS,
+                        EventsHandlerNew,
                         dict(supported_agencies=SUPPORTED_AGENCIES),
                         name="events_new")
     ])
