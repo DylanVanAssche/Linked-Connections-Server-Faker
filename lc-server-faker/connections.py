@@ -32,7 +32,7 @@ class ConnectionsHandler(tornado.web.RequestHandler):
             )
 
     def _find_fragment(self, departure_time):
-        now_date = datetime.datetime.now().replace(tzinfo=None)
+        now_date = datetime.datetime.utcnow().replace(tzinfo=None)
         try:
             target_date = dateutil.parser.parse(departure_time).replace(tzinfo=None)
             if target_date > now_date:

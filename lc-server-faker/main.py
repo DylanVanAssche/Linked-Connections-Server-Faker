@@ -1,26 +1,27 @@
 #!/usr/bin/python3
 
-import tornado.ioloop
-import tornado.web
 import argparse
 import os
+import datetime
 import helpers
-from constants import *
+import tornado.ioloop
+import tornado.web
 from connections import ConnectionsHandler
-from events import EventsHandler
+from constants import *
+from events import EventsHandlerHTTP, EventsHandlerSSE, EventsHandlerWS, EventsHandlerNew
 
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write("Main page of the LC server")
-        self.write('<a href="{0}">SNCB Linked Connections</a>'.format(self.reverse_url("connections", "sncb")))
-        self.write('<a href="{0}">SNCB Linked Events</a>'.format(self.reverse_url("events", "sncb")))
+        # Landing page
+        self.render("assets/index.html")
 
 
-if __name__ == "__main__":
+def main():
     # Commandline configuration
     parser = argparse.ArgumentParser(
-        description="Linked Connections Server Faker, test your Linked Connections application in a reproducible environment.")
+                        description="Linked Connections Server Faker, test your Linked Connections application in a \
+                        reproducible environment.")
     parser.add_argument("-p", "--port",
                         default=PORT,
                         type=int,
@@ -76,10 +77,27 @@ if __name__ == "__main__":
                         ConnectionsHandler,
                         dict(supported_agencies=SUPPORTED_AGENCIES),
                         name="connections"),
-        tornado.web.url(r"/([a-z]+)/events",
-                        EventsHandler,
+        tornado.web.url(r"/([a-z]+)/events/poll",
+                        EventsHandlerHTTP,
                         dict(supported_agencies=SUPPORTED_AGENCIES),
-                        name="events")
+                        name="events_polling"),
+        tornado.web.url(r"/([a-z]+)/events/sse",
+                        EventsHandlerSSE,
+                        dict(supported_agencies=SUPPORTED_AGENCIES),
+                        name="events_sse"),
+        tornado.web.url(r"/([a-z]+)/events/ws",
+                        EventsHandlerWS,
+                        dict(supported_agencies=SUPPORTED_AGENCIES),
+                        name="events_ws"),
+        tornado.web.url(r"/([a-z]+)/events/new",
+                        EventsHandlerNew,
+                        dict(supported_agencies=SUPPORTED_AGENCIES),
+                        name="events_new")
     ])
     app.listen(port)
-    tornado.ioloop.IOLoop.current().start()
+    tornado.ioloop.IOLoop.instance().start()
+
+
+if __name__ == "__main__":
+    main()
+

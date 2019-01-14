@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LC server faker</title>
+</head>
+<body>
+    <h1>Linked Connections Server Faker</h1>
+    <h2>Generate event</h2>
+    <form>
+        <label>Connection URI</label>
+        <input id= "connectionURI" type="text" pattern="http?://.+" required /><br>
+        <label>Timestamp of the event</label>
+        <input id="timestamp" type="text" required /><br>
+        <select name="action" id="action">
+            <option value="delay">Change the delay times</option>
+            <option value="cancel">Cancel the connection</option>
+        </select><br>
+        <button type="button" onclick="generateEvent()">Generate event</button>
+    </form>
+    <h2>Events monitor</h2>
+    <code id="events"></code>
+    <script type="text/javascript">
+        // Fill in the current timestamp for easier usage
+        document.getElementById("timestamp").value = new Date().toISOString()
+
+        // Enable SSE event stream
+        var source = new EventSource("sncb/events/sse?lastSyncTime=" + new Date().toISOString());
+        source.onmessage = function(message) {
+            var div = document.getElementById("events");
+            div.innerHTML = message.data + "<br><br>" + div.innerHTML;
+        };
+
+        // Generate event by posting it to the LC server faker
+        function generateEvent() {
+            console.log("Generating event: \nTIMESTAMP: " + document.getElementById("timestamp").value
+              + "\nCONNECTION URI: " + document.getElementById("connectionURI").value
+              + "\nACTION: " + document.getElementById("action").value)
+
+            var data = new FormData();
+            data.append("timestamp", document.getElementById("timestamp").value);
+            data.append("connectionURI", document.getElementById("connectionURI").value);
+            data.append("action", document.getElementById("action").value);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "sncb/events/new", true);
+            xhr.send(data);
+        }
+    </script>
+</body>
+</html>
