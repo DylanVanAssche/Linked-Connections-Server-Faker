@@ -179,12 +179,28 @@ class EventsHandlerWS(_PushHandler, tornado.websocket.WebSocketHandler):
             self._close()
 
 
-class EventsHandlerNew(tornado.web.RequestHandler):
-    def post(self):
-        timestamp = self.get("timestamp")
-        connection_uri = self.get_argument("connectionURI")
-        action = self.get_argument("action")
-        self._add_event(timestamp, connection_uri, action)
+class EventsHandlerNew(_BaseEventsHandler, tornado.web.RequestHandler):
+    def post(self, agency):
+        if agency in self.supported_agencies:
+            print("POST event received")
+            timestamp = self.get_argument("timestamp")
+            connection_uri = self.get_argument("connectionURI")
+            action = self.get_argument("action")
+            print("TIMESTAMP=" + str(timestamp))
+            print("CONNECTION URI=" + str(connection_uri))
+            print("ACTION=" + str(action))
+            self._add_event(timestamp, connection_uri, action)
+            self.write({
+                "status": 200
+            })
+        else:
+            self.set_status(404)
+            self.store.submit(
+                {
+                    "error": "Unsupported agency: {0}".format(agency),
+                    "status": 404
+                }
+            )
 
     def _add_event(self, timestamp, connection_uri, action):
         print("Adding event")
@@ -198,7 +214,8 @@ class EventsHandlerNew(tornado.web.RequestHandler):
                 "timestamp": timestamp,
                 "connectionURI": connection_uri
             }
-            events["@graph"].append(e)
+            events.append(e)
+            events = sorted(events, key=lambda k: k["timestamp"])
 
             # Save all events to the events file
             with open(EVENTS_FILE, "w") as json_file:

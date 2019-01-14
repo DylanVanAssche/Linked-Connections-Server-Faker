@@ -12,10 +12,10 @@
         <input id= "connectionURI" type="text" pattern="http?://.+" required /><br>
         <label>Timestamp of the event</label>
         <input id="timestamp" type="text" required /><br>
-        <select name="action">
+        <select name="action" id="action">
             <option value="delay">Change the delay times</option>
             <option value="cancel">Cancel the connection</option>
-        </select>
+        </select><br>
         <button type="button" onclick="generateEvent()">Generate event</button>
     </form>
     <h2>Events monitor</h2>
@@ -36,6 +36,15 @@
             console.log("Generating event: \nTIMESTAMP: " + document.getElementById("timestamp").value
               + "\nCONNECTION URI: " + document.getElementById("connectionURI").value
               + "\nACTION: " + document.getElementById("action").value)
+
+            var data = new FormData();
+            data.append("timestamp", document.getElementById("timestamp").value);
+            data.append("connectionURI", document.getElementById("connectionURI").value);
+            data.append("action", document.getElementById("action").value);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "sncb/events/new", true);
+            xhr.send(data);
         }
     </script>
 </body>
