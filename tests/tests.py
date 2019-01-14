@@ -36,3 +36,10 @@ async def send_time(uri):
 
 asyncio.get_event_loop().run_until_complete(send_time(PROTOCOL_WS + HOST + "/sncb/events/ws"))
 print("/evens/ws resource OK")
+
+# Test the /events/new resource
+r = requests.post(PROTOCOL_HTTP + HOST + "/sncb/events/new", data=dict(timestamp=formatted_date,
+                                                                        connectionURI="http://irail.be/connections/test",
+                                                                        action="cancel"))
+r.raise_for_status()
+print("/events/new resource OK")
