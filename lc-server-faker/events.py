@@ -174,3 +174,9 @@ class EventsHandlerWS(_PushHandler, tornado.websocket.WebSocketHandler):
         except tornado.websocket.WebSocketClosedError:
             print("WebSocket was already closed, cannot write data to it!")
             self._close()
+
+class EventsHandlerNew(tornado.web.RequestHandler):
+    def post(self):
+        connectionURI = self.get_argument("connectionURI")
+        timestamp = self.get("timestamp")
+        action = self.get_argument("action")

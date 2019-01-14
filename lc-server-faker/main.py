@@ -13,12 +13,7 @@ from events import EventsHandlerHTTP, EventsHandlerSSE, EventsHandlerWS
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write("Main page of the LC server")
-        self.write('<a href="{0}">SNCB Linked Connections</a><br>'.format(self.reverse_url("connections", "sncb")))
-        self.write('<a href="{0}">SNCB Linked Events POLLING</a><br>'.format(self.reverse_url("events_polling", "sncb")))
-        self.write('<a href="{0}">SNCB Linked Events SSE</a><br>'.format(self.reverse_url("events_sse", "sncb")))
-        self.write('<a href="{0}">SNCB Linked Events WS</a><br>'.format(self.reverse_url("events_ws", "sncb")))
-
+        self.render("assets/index.html")
 
 def main():
     # Commandline configuration
@@ -92,6 +87,10 @@ def main():
                         EventsHandlerWS,
                         dict(supported_agencies=SUPPORTED_AGENCIES),
                         name="events_ws")
+        tornado.web.url(r"/([a-z]+)/events/new",
+                        EventsHandlerWS,
+                        dict(supported_agencies=SUPPORTED_AGENCIES),
+                        name="events_new")
     ])
     app.listen(port)
     tornado.ioloop.IOLoop.instance().start()
