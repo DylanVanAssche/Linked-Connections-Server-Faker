@@ -6,6 +6,7 @@ import datetime
 import helpers
 import tornado.ioloop
 import tornado.web
+import shutil
 from connections import ConnectionsHandler
 from constants import *
 from events import EventsHandlerHTTP, EventsHandlerSSE, EventsHandlerWS, EventsHandlerNew, EventsHandlerStatic
@@ -42,21 +43,28 @@ def main():
                         default=ADDITIONAL_EVENT_TIME,
                         type=int,
                         help="Additional event time which is added to the connection.")
-    parser.add_argument("-c", "--clean",
+    parser.add_argument("-mad", "--maxadditionaldelay",
+                        default=MAX_ADDITONAL_DELAY,
+                        type=int,
+                        help="Additional delay time which is added to the connection.")
+    parser.add_argument("-c", "--clean", action="store_true",
                         help="Clean up data and download a fresh dataset.")
     args = parser.parse_args()
     port = args.port
     number_of_events = args.numberofevents
     max_delay = args.maxdelay
+    max_additional_delay = args.maxadditionaldelay
     step_delay = args.stepdelay
     additional_event_time = args.additionaleventtime
-    #if hasattr(argparse, "clean"):
-    #    os.rmdir("connections")
-    #    os.rmdir("events")
+    if args.clean:
+        print("Removing old data...")
+        shutil.rmtree("connections")
+        shutil.rmtree("events")
 
     # Generate connections and events
     helpers.fetch_connections("http://localhost:8080")
-    helpers.generate_pseudorandom_events(number_of_events, additional_event_time, max_delay, step_delay)
+    helpers.generate_pseudorandom_events(number_of_events, additional_event_time, max_delay,
+                                         max_additional_delay, step_delay)
 
     # Start updater for static fragment by creating a handler for these static pages
     EventsHandlerStatic()
@@ -80,7 +88,7 @@ def main():
                         ConnectionsHandler,
                         dict(supported_agencies=SUPPORTED_AGENCIES),
                         name="connections"),
-        tornado.web.url(r"/([a-z]+)/events/poll",
+        tornado.web.url(r"/([a-z]+)/events",
                         EventsHandlerHTTP,
                         dict(supported_agencies=SUPPORTED_AGENCIES),
                         name="events_polling"),
