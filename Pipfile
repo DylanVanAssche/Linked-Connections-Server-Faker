@@ -1,0 +1,30 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+certifi = "*"
+chardet = "*"
+cheroot = "*"
+idna = "*"
+more-itertools = "*"
+portend = "*"
+python-dateutil = "*"
+pytz = "*"
+requests = "*"
+six = "*"
+sseclient = "*"
+tempora = "*"
+tornado = "*"
+tornadose = "*"
+urllib3 = "*"
+websockets = "*"
+"backports.functools_lru_cache" = "*"
+"jaraco.functools" = "*"
+"zc.lockfile" = "*"
+
+[requires]
+python_version = "3.7"

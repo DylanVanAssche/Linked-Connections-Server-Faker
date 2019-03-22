@@ -32,7 +32,7 @@ def fetch_connections(server_url):
                                                                         server_url)
 
                 # Save fragment
-                departure_time_query = parse_qs(urlparse(url).query)["departureTime"][0]
+                departure_time_query = parse_qs(urlparse(fragment['@id']).query)["departureTime"][0]
                 with open("connections/" + departure_time_query + ".jsonld", "w") as json_file:
                     json.dump(fragment, json_file)
 

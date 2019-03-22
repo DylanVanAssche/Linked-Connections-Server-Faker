@@ -24,9 +24,17 @@ class _BaseEventsHandler(object):
 
     def _fetch_events(self, last_sync_time):
         now_date = datetime.datetime.utcnow().replace(tzinfo=None)
-        target_date = last_sync_time.replace(tzinfo=None)
-        if target_date > now_date:
-            raise ValueError("lastSyncTime must be before now")
+        try:
+            target_date = dateutil.parser.parse(departure_time).replace(tzinfo=None)
+            print(target_date)
+            if target_date > now_date:
+                raise ValueError("lastSyncTime must be before now")
+        except ValueError:
+            self.set_status(400)
+            return {
+                "error": "Target date is further than now",
+                "status": 400
+            }
 
         events = {
             "lastSyncTime": target_date.replace(tzinfo=None).isoformat() + "Z",
