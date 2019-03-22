@@ -49,7 +49,8 @@ class ConnectionsHandler(tornado.web.RequestHandler):
             next_date = dateutil.parser.parse(os.path.basename(os.path.splitext(next_file)[0])).replace(tzinfo=None)
 
             # Ignore the date, only use the time
-            if current_date <= target_date.replace(year=current_date.year, month=current_date.month, day=current_date.day) < next_date:
+            if current_date <= target_date.replace(year=current_date.year, month=current_date.month,
+                                                  day=current_date.day) < next_date:
                 print("Target date: {0}, between files: {1} and {2}".format(departure_time, current_file, next_file))
                 target_file = current_file
                 break

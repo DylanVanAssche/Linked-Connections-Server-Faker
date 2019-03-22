@@ -9,7 +9,6 @@ import datetime
 import json
 import signal
 import abc
-import helpers
 from constants import *
 
 
@@ -55,12 +54,12 @@ class _BaseEventsHandler(object):
 
         return events
 
+
 class _PushHandler(_BaseEventsHandler):
     __metaclass__ = abc.ABCMeta
 
     def initialize(self, supported_agencies):
         _BaseEventsHandler.initialize(self, supported_agencies)
-
         # Start the event fetcher (1s) and stop it when shutting down
         self.callback = tornado.ioloop.PeriodicCallback(self._check_for_new_events, 1000)
         signal.signal(signal.SIGINT, self._shutdown)
@@ -85,6 +84,24 @@ class _PushHandler(_BaseEventsHandler):
     def _close(self):
         print("Cleaning up")
         self.callback.stop()
+
+
+class EventsHandlerStatic(_PushHandler):
+    def initialize(self, supported_agencies):
+        _PushHandler.initialize(self. supported_agencies)
+        # Start the callback immediately
+        self.callback.start()
+
+    def _send(self, message):
+        print("Received new connections, updating static")
+        for c in message["@graph"]:
+            # Search for the page and the next page
+
+            # Update the connection if departureTime (including delay) < next page time
+
+            # Move connection to the next page if departureTime (including delay) <= next page time
+
+            pass
 
 
 class EventsHandlerHTTP(_BaseEventsHandler, tornado.web.RequestHandler):

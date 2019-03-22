@@ -10,7 +10,7 @@ from urllib.parse import urlparse, parse_qs
 from constants import *
 
 
-def fetch_connections():
+def fetch_connections(server_url):
     try:
         url = FRAGMENT_URL
         if not os.path.exists("connections"):
@@ -20,15 +20,22 @@ def fetch_connections():
                 print("Downloading: " + url)
                 fragment = requests.get(url).json()
 
+                # Find next fragment
+                url = fragment["hydra:next"]
+                departure_time_query = parse_qs(urlparse(url).query)["departureTime"][0]
+                date = dateutil.parser.parse(departure_time_query)
+
+                # Fix hydra navigation
+                fragment["hydra:next"] = fragment["hydra:next"].replace("https://graph.irail.be",
+                                                                        server_url)
+                fragment["hydra:previous"] = fragment["hydra:previous"].replace("https://graph.irail.be",
+                                                                        server_url)
+
                 # Save fragment
                 departure_time_query = parse_qs(urlparse(url).query)["departureTime"][0]
                 with open("connections/" + departure_time_query + ".jsonld", "w") as json_file:
                     json.dump(fragment, json_file)
 
-                # Find next fragment
-                url = fragment["hydra:next"]
-                departure_time_query = parse_qs(urlparse(url).query)["departureTime"][0]
-                date = dateutil.parser.parse(departure_time_query)
                 if date >= dateutil.parser.parse(STOP_TIME):
                     break
     except Exception as e:

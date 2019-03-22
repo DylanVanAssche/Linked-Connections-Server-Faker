@@ -8,7 +8,7 @@ import tornado.ioloop
 import tornado.web
 from connections import ConnectionsHandler
 from constants import *
-from events import EventsHandlerHTTP, EventsHandlerSSE, EventsHandlerWS, EventsHandlerNew
+from events import EventsHandlerHTTP, EventsHandlerSSE, EventsHandlerWS, EventsHandlerNew, EventsHandlerStatic
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -37,7 +37,7 @@ def main():
     parser.add_argument("-sd", "--stepdelay",
                         default=STEP_DELAY,
                         type=int,
-                        help="The size of the steps to generate delays.")
+                        help="The size of the step to generate delays.")
     parser.add_argument("-aet", "--additionaleventtime",
                         default=ADDITIONAL_EVENT_TIME,
                         type=int,
@@ -50,13 +50,16 @@ def main():
     max_delay = args.maxdelay
     step_delay = args.stepdelay
     additional_event_time = args.additionaleventtime
-    if hasattr(argparse, "clean"):
-        os.rmdir("connections")
-        os.rmdir("events")
+    #if hasattr(argparse, "clean"):
+    #    os.rmdir("connections")
+    #    os.rmdir("events")
 
     # Generate connections and events
-    helpers.fetch_connections()
+    helpers.fetch_connections("http://localhost:8080")
     helpers.generate_pseudorandom_events(number_of_events, additional_event_time, max_delay, step_delay)
+
+    # Start updater for static fragment by creating a handler for these static pages
+    EventsHandlerStatic()
 
     # Print configuration
     print("=" * 80)
