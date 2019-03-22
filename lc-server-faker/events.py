@@ -9,7 +9,6 @@ import datetime
 import json
 import signal
 import abc
-import helpers
 from constants import *
 
 
@@ -25,12 +24,101 @@ class _BaseEventsHandler(object):
 
     def _fetch_events(self, last_sync_time):
         now_date = datetime.datetime.utcnow().replace(tzinfo=None)
-        target_date = last_sync_time.replace(tzinfo=None)
-        if target_date > now_date:
-            raise ValueError("lastSyncTime must be before now")
+        try:
+            target_date = last_sync_time.replace(tzinfo=None)
+            if target_date > now_date:
+                raise ValueError("lastSyncTime must be before now")
+        except ValueError:
+            self.set_status(400)
+            return {
+                "error": "Target date is further than now",
+                "status": 400
+            }
 
         events = {
-            "lastSyncTime": target_date.replace(tzinfo=None).isoformat() + "Z",
+            "@context": {
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "lc": "http://semweb.mmlab.be/ns/linkedconnections#",
+            "hydra": "http://www.w3.org/ns/hydra/core#",
+            "gtfs": "http://vocab.gtfs.org/terms#",
+            "sosa": "http://www.w3.org/ns/sosa#",
+            "Event": "sosa:Observation",
+            "Connection": "lc:Connection",
+            "CancelledConnection": "lc:CancelledConnection",
+            "arrivalTime": {
+                "@id": "lc:arrivalTime",
+                "@type": "xsd:dateTime"
+            },
+            "departureTime": {
+                "@id": "lc:departureTime",
+                "@type": "xsd:dateTime"
+            },
+            "arrivalStop": {
+                "@type": "@id",
+                "@id": "lc:arrivalStop"
+            },
+            "departureStop": {
+                "@type": "@id",
+                "@id": "lc:departureStop"
+            },
+            "departureDelay": {
+                "@id": "lc:departureDelay",
+                "@type": "xsd:integer"
+            },
+            "arrivalDelay": {
+                "@id": "lc:arrivalDelay",
+                "@type": "xsd:integer"
+            },
+            "direction": {
+                "@id": "gtfs:headsign",
+                "@type": "xsd:string"
+            },
+            "gtfs:trip": {
+                "@type": "@id"
+            },
+            "gtfs:route": {
+                "@type": "@id"
+            },
+            "gtfs:pickupType": {
+                "@type": "@id"
+            },
+            "gtfs:dropOffType": {
+                "@type": "@id"
+            },
+            "gtfs:Regular": {
+                "@type": "@id"
+            },
+            "gtfs:NotAvailable": {
+                "@type": "@id"
+            },
+            "hydra:next": {
+                "@type": "@id"
+            },
+            "hydra:previous": {
+                "@type": "@id"
+            },
+            "hydra:property": {
+                "@type": "@id"
+            },
+            "hydra:variableRepresentation": {
+                    "@type": "@id"
+                }
+            },
+            "@id": "http://localhost:8080/sncb/events?lastSyncTime=",
+            "@type": "hydra:PartialCollectionView",
+            "hydra:next": "http://localhost:8080/sncb/events?lastSyncTime=",
+            "hydra:previous": "http://localhost:8080/sncb/events?lastSyncTime=",
+            "hydra:search": {
+                "@type": "hydra:IriTemplate",
+                "hydra:template": "http://localhost:8080/sncb/events{?lastSyncTime}",
+                "hydra:variableRepresentation": "hydra:BasicRepresentation",
+                "hydra:mapping": {
+                    "@type": "IriTemplateMapping",
+                    "hydra:variable": "departureTime",
+                    "hydra:required": True,
+                    "hydra:property": "lc:departureTimeQuery"
+                }
+            },
             "@graph": []
         }
 
@@ -42,11 +130,15 @@ class _BaseEventsHandler(object):
         target_date = target_date.replace(year=now_date.year,
                                           month=now_date.month,
                                           day=now_date.day)
+        hydra_next_date = target_date + datetime.timedelta(minutes=10)
+        hydra_previous_date = target_date - datetime.timedelta(minutes=10)
+        events["hydra:next"] = events["hydra:next"] + hydra_next_date.isoformat() + ".000Z"
+        events["hydra:previous"] = events["hydra:previous"] + hydra_previous_date.isoformat() + ".000Z"
 
         # Sort the events by timestamp and filter them based on the sync time
-        json_data = sorted(json_data, key=lambda k: k["timestamp"])
+        json_data = sorted(json_data, key=lambda k: k["sosa:resultTime"])
         for c in json_data:
-            current_date = dateutil.parser.parse(c["timestamp"]).replace(year=now_date.year,
+            current_date = dateutil.parser.parse(c["sosa:resultTime"]).replace(year=now_date.year,
                                                                          month=now_date.month,
                                                                          day=now_date.day,
                                                                          tzinfo=None)
@@ -55,12 +147,12 @@ class _BaseEventsHandler(object):
 
         return events
 
+
 class _PushHandler(_BaseEventsHandler):
     __metaclass__ = abc.ABCMeta
 
     def initialize(self, supported_agencies):
         _BaseEventsHandler.initialize(self, supported_agencies)
-
         # Start the event fetcher (1s) and stop it when shutting down
         self.callback = tornado.ioloop.PeriodicCallback(self._check_for_new_events, 1000)
         signal.signal(signal.SIGINT, self._shutdown)
@@ -87,6 +179,24 @@ class _PushHandler(_BaseEventsHandler):
         self.callback.stop()
 
 
+class EventsHandlerStatic(_PushHandler):
+    def initialize(self, supported_agencies):
+        _PushHandler.initialize(self. supported_agencies)
+        # Start the callback immediately
+        self.callback.start()
+
+    def _send(self, message):
+        print("Received new connections, updating static")
+        for c in message["@graph"]:
+            # Search for the page and the next page
+
+            # Update the connection if departureTime (including delay) < next page time
+
+            # Move connection to the next page if departureTime (including delay) <= next page time
+
+            pass
+
+
 class EventsHandlerHTTP(_BaseEventsHandler, tornado.web.RequestHandler):
     def get(self, agency):
         # return HTTP if header is application/json, works fine
@@ -97,7 +207,8 @@ class EventsHandlerHTTP(_BaseEventsHandler, tornado.web.RequestHandler):
                 last_sync_time = self.get_argument("lastSyncTime")
                 last_sync_time = dateutil.parser.parse(last_sync_time)
                 e = self._fetch_events(last_sync_time)
-                print("Found {0} HTTP polling events".format(len(e["@graph"])))
+                if "@graph" in e:
+                    print("Found {0} HTTP polling events".format(len(e["@graph"])))
                 self.write(e)
             except ValueError:
                 self.set_status(400)

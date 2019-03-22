@@ -32,13 +32,7 @@ class ConnectionsHandler(tornado.web.RequestHandler):
             )
 
     def _find_fragment(self, departure_time):
-        now_date = datetime.datetime.utcnow().replace(tzinfo=None)
-        try:
-            target_date = dateutil.parser.parse(departure_time).replace(tzinfo=None)
-            if target_date > now_date:
-                raise ValueError("lastSyncTime must be before now")
-        except ValueError:
-            self.set_status(400)
+        target_date = dateutil.parser.parse(departure_time).replace(tzinfo=None)
         target_file = None
 
         for i in range(0, len(self.files) - 1):
@@ -49,7 +43,8 @@ class ConnectionsHandler(tornado.web.RequestHandler):
             next_date = dateutil.parser.parse(os.path.basename(os.path.splitext(next_file)[0])).replace(tzinfo=None)
 
             # Ignore the date, only use the time
-            if current_date <= target_date.replace(year=current_date.year, month=current_date.month, day=current_date.day) < next_date:
+            if current_date <= target_date.replace(year=current_date.year, month=current_date.month,
+                                                  day=current_date.day) < next_date:
                 print("Target date: {0}, between files: {1} and {2}".format(departure_time, current_file, next_file))
                 target_file = current_file
                 break
