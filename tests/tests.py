@@ -17,8 +17,8 @@ r = requests.get(PROTOCOL_HTTP + HOST + "/sncb/connections?departureTime=" + for
 r.raise_for_status()
 print("/connections resource OK")
 
-# Test the /events/poll resource
-r = requests.get(PROTOCOL_HTTP + HOST + "/sncb/events/poll?lastSyncTime=" + formatted_date)
+# Test the /events resource
+r = requests.get(PROTOCOL_HTTP + HOST + "/sncb/events?lastSyncTime=" + formatted_date)
 r.raise_for_status()
 print("/events/poll resource OK")
 
